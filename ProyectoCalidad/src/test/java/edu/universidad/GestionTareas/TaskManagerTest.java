@@ -22,6 +22,13 @@ public class TaskManagerTest {
         // Restaurar la salida de consola original
         System.setOut(originalOut);
     }
+    
+    @Test
+    void pruebaDeVerificacion() {
+        // Esta es una prueba sencilla para verificar que el entorno de pruebas funciona.
+        // No afecta el código de la aplicación, solo confirma que se pueden ejecutar aserciones.
+        assertTrue(true, "Esta prueba debe pasar siempre.");
+    }
 
     @Test
     void testAddTask() {
