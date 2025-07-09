@@ -14,7 +14,7 @@ public class TaskManager {
             System.out.println("Task " + (i + 1) + ": " + tasks.get(i));
         }
     }
-
+    //Hola SOy gaupo
     public void removeTask(int id) {
         tasks.remove(id - 1);
         System.out.println("Task removed.");
