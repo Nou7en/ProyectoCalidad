@@ -1,50 +1,78 @@
 name: CI/CD con Maven, Análisis y Despliegue
 
+# Permisos necesarios para que el workflow pueda escribir en GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 on:
   push:
     branches: [ main ]
     tags:
-      - 'v*' # También se activa cuando creas una etiqueta como v1.0
+      - 'v*'
 
 jobs:
-  # TRABAJO 1: CONSTRUIR Y ANALIZAR
+  # TRABAJO 1: CONSTRUIR Y ANALIZAR (Igual que antes)
   build-and-analyze:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
-
       - name: Configurar JDK 11
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
           cache: 'maven'
-
       - name: Ejecutar pruebas y análisis con Maven
         run: mvn -B verify -f ProyectoCalidad/pom.xml
+      - name: Subir reportes de calidad como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-de-calidad
+          path: ProyectoCalidad/target/site/
 
-  # TRABAJO 2: DESPLEGAR
+  # TRABAJO 2: DESPLEGAR EL JAR (Igual que antes, solo en tags)
   deploy:
-    # Condición 1: El trabajo anterior debe tener éxito
     needs: build-and-analyze
-    # Condición 2: Solo se ejecuta si el evento fue crear una etiqueta
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
-
       - name: Configurar JDK 11
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
-
       - name: Empaquetar la aplicación
         run: mvn -B package -f ProyectoCalidad/pom.xml
-
       - name: Crear Release en GitHub
         uses: softprops/action-gh-release@v1
         with:
           files: ProyectoCalidad/target/ProyectoCalidad-1.0-SNAPSHOT.jar
+
+  # --- TRABAJO NUEVO ---
+  # TRABAJO 3: DESPLEGAR REPORTES A GITHUB PAGES
+  deploy-reports:
+    runs-on: ubuntu-latest
+    # Requiere que el build termine para tener los reportes
+    needs: build-and-analyze
+    # Solo se ejecuta en pushes a la rama main
+    if: github.ref == 'refs/heads/main'
+    steps:
+      # Descarga el artefacto que subió el job "build-and-analyze"
+      - name: Descargar artefacto de reportes
+        uses: actions/download-artifact@v4
+        with:
+          name: reportes-de-calidad
+      # Sube los reportes para que GitHub Pages los pueda desplegar
+      - name: Subir artefacto para GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      # Despliega el sitio web
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
